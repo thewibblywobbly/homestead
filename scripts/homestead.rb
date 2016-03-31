@@ -120,24 +120,15 @@ class Homestead
 
     # Register All Of The Configured Shared Folders
     if settings.include? 'folders'
+      settings["folders"].sort! { |a,b| a["map"].length <=> b["map"].length }
+      
       settings["folders"].each do |folder|
-        mount_opts = []
-
-        if (folder["type"] == "nfs")
-            mount_opts = folder["mount_options"] ? folder["mount_options"] : ['actimeo=1']
-        elsif (folder["type"] == "smb")
-            mount_opts = folder["mount_options"] ? folder["mount_options"] : ['vers=3.02', 'mfsymlinks']
-        end
-
-        # For b/w compatibility keep separate 'mount_opts', but merge with options
-        options = (folder["options"] || {}).merge({ mount_options: mount_opts })
-
-        # Double-splat (**) operator only works with symbol keys, so convert
-        options.keys.each{|k| options[k.to_sym] = options.delete(k) }
-
-        config.vm.synced_folder folder["map"], folder["to"], type: folder["type"] ||= nil, **options
-      end
-    end
+			config.vm.synced_folder folder["map"], folder["to"], 
+			id: folder["map"],
+			:nfs => true,
+			:mount_options => ['nolock,vers=3,udp,noatime']
+		end
+	end
 
     # Install All The Configured Nginx Sites
     config.vm.provision "shell" do |s|
